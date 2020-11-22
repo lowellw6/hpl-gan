@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from model import AE
 from mnist import get_mnist_train_data, get_mnist_test_data
+from eval import save_reconstructions
 
 
 def train_autoencoder(epochs):
@@ -19,10 +20,14 @@ def train_autoencoder(epochs):
         os.mkdir("./datasets")
 
     mnist_train_loader = get_mnist_train_data(store_location="./datasets")
+    
     mnist_test_loader = get_mnist_test_data(store_location="./datasets")
+    test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
     autoencoder = AE(input_shape=784).to(device)
     optimizer = optim.Adam(autoencoder.parameters(), lr=1e-3)
+
+    save_reconstructions(f"AE-grid-0", autoencoder, device, test_batch)
     
     print(f"Training for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -57,6 +62,10 @@ def train_autoencoder(epochs):
         # display the epoch training loss
         print("epoch : {}/{}, loss = {:.6f}".format(epoch + 1, epochs, loss))
 
+        # save visual results on first batch of held-out set
+        save_reconstructions(f"AE-grid-{epoch+1}", autoencoder, device, test_batch)
+
+
     if not os.path.isdir("./models"):
         os.mkdir("./models")
 
@@ -65,4 +74,4 @@ def train_autoencoder(epochs):
 
 
 if __name__ == "__main__":
-    train_autoencoder(100)
+    train_autoencoder(20)

@@ -1,4 +1,6 @@
 **/datasets
 **/models
+*.png
+*.jpg
 
 **/__pycache__

@@ -31,7 +31,7 @@ class AE(nn.Module):
         activation = self.decoder_hidden_layer(code)
         activation = torch.relu(activation)
         activation = self.decoder_output_layer(activation)
-        reconstructed = torch.relu(activation)
+        reconstructed = torch.sigmoid(activation)
         return reconstructed
 
     def encode(self, features):
@@ -44,5 +44,29 @@ class AE(nn.Module):
         activation = self.decoder_hidden_layer(code)
         activation = torch.relu(activation)
         activation = self.decoder_output_layer(activation)
-        reconstructed = torch.relu(activation)
+        reconstructed = torch.sigmoid(activation)
         return reconstructed
+
+
+class LatentDiscriminatorMLP(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+
+        self.dense = nn.Linear(
+            in_features=input_size, out_features=1
+        )
+
+    def forward(self, code):
+        return torch.sigmoid(self.dense(code))
+
+
+class LatentGeneratorMLP(nn.Module):
+    def __init__(self, input_size, output_size):
+        super().__init__()
+
+        self.dense = nn.Linear(
+            in_features=input_size, out_features=output_size
+        )
+
+    def forward(self, prior):
+        return torch.relu(self.dense(prior))
