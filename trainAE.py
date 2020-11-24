@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from model import AE
 from mnist import get_mnist_train_data, get_mnist_test_data
-from eval import save_reconstructions
+from util import save_reconstructions
 
 
 def train_autoencoder(epochs):
@@ -23,11 +23,16 @@ def train_autoencoder(epochs):
     
     mnist_test_loader = get_mnist_test_data(store_location="./datasets")
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
+    test_input = test_batch.view(-1, 784).to(device)
+    test_input = (test_input * 2) - 1
 
-    autoencoder = AE(input_shape=784).to(device)
+    autoencoder = AE(input_shape=784, z_size=128).to(device)
     optimizer = optim.Adam(autoencoder.parameters(), lr=1e-3)
 
-    save_reconstructions(f"AE-grid-0", autoencoder, device, test_batch)
+    with torch.no_grad():
+        reconstructions = autoencoder(test_input)
+        reconstructions = (reconstructions + 1) * 0.5
+    save_reconstructions(f"AE-grid-0", test_batch, reconstructions)
     
     print(f"Training for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -36,6 +41,7 @@ def train_autoencoder(epochs):
             # reshape mini-batch data to [N, 784] matrix
             # load it to the active device
             input_features = image_tensors.view(-1, 784).to(device)
+            input_features = (input_features * 2) - 1
             
             # reset the gradients back to zero
             # PyTorch accumulates gradients on subsequent backward passes
@@ -63,7 +69,10 @@ def train_autoencoder(epochs):
         print("epoch : {}/{}, loss = {:.6f}".format(epoch + 1, epochs, loss))
 
         # save visual results on first batch of held-out set
-        save_reconstructions(f"AE-grid-{epoch+1}", autoencoder, device, test_batch)
+        with torch.no_grad():
+            reconstructions = autoencoder(test_input)
+            reconstructions = (reconstructions + 1) * 0.5
+        save_reconstructions(f"AE-grid-{epoch+1}", test_batch, reconstructions)
 
 
     if not os.path.isdir("./models"):

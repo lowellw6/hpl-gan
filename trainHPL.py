@@ -7,11 +7,11 @@ from tqdm import tqdm
 
 from model import AE, LatentDiscriminatorMLP, LatentGeneratorMLP
 from mnist import get_mnist_train_data, get_mnist_test_data
-from eval import save_images
+from util import save_images
 
 
 def train_hpl(epochs, state_dict_path_AE):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     if not os.path.isdir("./datasets"):
         os.mkdir("./datasets")
@@ -21,18 +21,24 @@ def train_hpl(epochs, state_dict_path_AE):
     mnist_test_loader = get_mnist_test_data(store_location="./datasets")
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
-    autoencoder = AE(input_shape=784).to(device)
+    z_size = 128
+
+    autoencoder = AE(input_shape=784, z_size=z_size).to(device)
     if state_dict_path_AE:
         autoencoder.load_state_dict(torch.load(state_dict_path_AE, map_location=device))
 
-    zgen = LatentGeneratorMLP(128, 128).to(device)
+    zgen = LatentGeneratorMLP(z_size, 32).to(device)
     zgen_opt = optim.Adam(zgen.parameters(), lr=1e-3)
 
-    zdis = LatentDiscriminatorMLP(128).to(device)
+    zdis = LatentDiscriminatorMLP(z_size, 32).to(device)
     zdis_opt = optim.Adam(zdis.parameters(), lr=1e-3)
 
+    print(zgen)
+    print(zdis)
+
     with torch.no_grad():
-        testZ = zgen(torch.rand(len(test_batch), 128).to(device))
+        prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
+        testZ = zgen(prior)
         testX = autoencoder.decode(testZ)
     save_images(f"HPL-grid-0", testX, device)
     
@@ -46,16 +52,17 @@ def train_hpl(epochs, state_dict_path_AE):
 
             # Compute discriminator loss with real and fake latent codes
             input_features = image_tensors.view(-1, 784).to(device)
+            input_features = (input_features * 2) - 1
             real_codes = autoencoder.encode(input_features)
             real_codes = real_codes.detach()
 
             real_scores = zdis(real_codes)
-            real_loss = F.binary_cross_entropy(real_scores, ones_target)
+            real_loss = F.binary_cross_entropy_with_logits(real_scores, 0.9 * ones_target)  # Smoothed "real" label
 
-            prior = torch.rand(len(image_tensors), 128).to(device)
+            prior = (torch.rand(len(image_tensors), 128).to(device) * 2) - 1
             fake_codes = zgen(prior)
             fake_scores = zdis(fake_codes.detach())
-            fake_loss = F.binary_cross_entropy(fake_scores, zeros_target)
+            fake_loss = F.binary_cross_entropy_with_logits(fake_scores, zeros_target)
 
             zdis_loss = real_loss + fake_loss
             Dloss += zdis_loss.item()
@@ -65,10 +72,10 @@ def train_hpl(epochs, state_dict_path_AE):
             zdis_opt.step()
 
             # Compute generator loss for maximizing fooling of zdis
-            prior = torch.rand(len(image_tensors), 128).to(device)
+            prior = (torch.rand(len(image_tensors), 128).to(device) * 2) - 1
             fake_codes = zgen(prior)
             fake_scores = zdis(fake_codes)
-            zgen_loss = F.binary_cross_entropy(fake_scores, ones_target)
+            zgen_loss = F.binary_cross_entropy_with_logits(fake_scores, ones_target)
             Gloss += zgen_loss.item()
 
             zgen_opt.zero_grad()
@@ -79,7 +86,8 @@ def train_hpl(epochs, state_dict_path_AE):
         Gloss /= len(mnist_train_loader)
 
         with torch.no_grad():
-            testZ = zgen(torch.rand(len(test_batch), 128).to(device))
+            prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
+            testZ = zgen(prior)
             testX = autoencoder.decode(testZ)
             meanZ, stdZ = testZ.mean(), testZ.std()
 
