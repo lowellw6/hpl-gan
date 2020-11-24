@@ -39,8 +39,8 @@ def train_hpl(epochs, state_dict_path_AE):
     with torch.no_grad():
         prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
         testZ = zgen(prior)
-        testX = autoencoder.decode(testZ)
-    save_images(f"HPL-grid-0", testX, device)
+        testX = (autoencoder.decode(testZ) + 1) * 0.5
+    save_images(f"HPL-grid-0", testX)
     
     print(f"Training HPL transfer mapping for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -59,7 +59,7 @@ def train_hpl(epochs, state_dict_path_AE):
             real_scores = zdis(real_codes)
             real_loss = F.binary_cross_entropy_with_logits(real_scores, 0.9 * ones_target)  # Smoothed "real" label
 
-            prior = (torch.rand(len(image_tensors), 128).to(device) * 2) - 1
+            prior = (torch.rand(len(image_tensors), z_size).to(device) * 2) - 1
             fake_codes = zgen(prior)
             fake_scores = zdis(fake_codes.detach())
             fake_loss = F.binary_cross_entropy_with_logits(fake_scores, zeros_target)
@@ -72,7 +72,7 @@ def train_hpl(epochs, state_dict_path_AE):
             zdis_opt.step()
 
             # Compute generator loss for maximizing fooling of zdis
-            prior = (torch.rand(len(image_tensors), 128).to(device) * 2) - 1
+            prior = (torch.rand(len(image_tensors), z_size).to(device) * 2) - 1
             fake_codes = zgen(prior)
             fake_scores = zdis(fake_codes)
             zgen_loss = F.binary_cross_entropy_with_logits(fake_scores, ones_target)
@@ -88,12 +88,12 @@ def train_hpl(epochs, state_dict_path_AE):
         with torch.no_grad():
             prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
             testZ = zgen(prior)
-            testX = autoencoder.decode(testZ)
+            testX = (autoencoder.decode(testZ) + 1) * 0.5
             meanZ, stdZ = testZ.mean(), testZ.std()
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, mean-Z = {:.3f}, std-Z = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, meanZ, stdZ))
 
-        save_images(f"HPL-grid-{epoch+1}", testX, device)
+        save_images(f"HPL-grid-{epoch+1}", testX)
 
     if not os.path.isdir("./models"):
         os.mkdir("./models")

@@ -36,7 +36,7 @@ def train_gan(epochs):
     with torch.no_grad():
         testZ = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
         testX = (gen(testZ) + 1) * 0.5
-    save_images(f"GAN-grid-0", testX, device)
+    save_images(f"GAN-grid-0", testX)
     
     print(f"Training GAN for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -91,7 +91,7 @@ def train_gan(epochs):
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, mean-X = {:.3f}, std-X = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, meanX, stdX))
 
-        save_images(f"GAN-grid-{epoch+1}", testX, device)
+        save_images(f"GAN-grid-{epoch+1}", testX)
 
     if not os.path.isdir("./models"):
         os.mkdir("./models")

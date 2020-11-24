@@ -36,7 +36,7 @@ def create_compare_grid(imgs, reconstructions, num_rows=4):
     return torch.cat(comp_rows, dim=2).squeeze()
 
 
-def save_images(name, images, device):
+def save_images(name, images):
     images_shaped = images.view(-1, 1, 28, 28).to("cpu")
     
     results = create_grid(images_shaped)

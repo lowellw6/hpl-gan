@@ -40,7 +40,7 @@ def train_adversarial_autoencoder(epochs):
     with torch.no_grad():
         testZ = torch.rand(len(test_batch), 128).to(device)  # Directly from random uniform distribution [0, 1)
         testX = autoencoder.decode(testZ)
-    save_images(f"AAE-grid-0", testX, device)
+    save_images(f"AAE-grid-0", testX)
 
     print(f"Training AAE for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -99,7 +99,7 @@ def train_adversarial_autoencoder(epochs):
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, AE-loss = {:.6f}, mean-Z = {:.3f}, std-Z = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, AEloss, meanZ, stdZ))
 
-        save_images(f"AAE-grid-{epoch+1}", testX, device)
+        save_images(f"AAE-grid-{epoch+1}", testX)
 
     if not os.path.isdir("./models"):
         os.mkdir("./models")
