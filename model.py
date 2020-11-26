@@ -42,6 +42,48 @@ class AE(nn.Module):
         return torch.tanh(activation)
 
 
+# class AutoDecoder(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.fc1 = nn.Linear(in_features=128, out_features=256)
+#         self.fc2 = nn.Linear(in_features=256, out_features=784)
+#         self.fc3 = nn.Linear(in_features=784, out_features=256)
+#         self.fc4 = nn.Linear(in_features=256, out_features=128)
+
+#     def forward(self, x):
+#         x = F.leaky_relu(self.fc1(x))
+#         x = torch.tanh(self.fc2(x))
+#         x = F.leaky_relu(self.fc3(x))
+#         return self.fc4(x)
+
+
+class Encoder(nn.Module):
+    """
+    Stand-alone encoder module. 
+    Note the output does not have leaky-relu applied, allowing greater representational freedom.
+    """
+    def __init__(self, input_shape, z_size):
+        super().__init__()
+        self.input_shape = input_shape
+
+        self.fc1 = nn.Linear(in_features=input_shape, out_features=z_size*4)
+        self.fc2 = nn.Linear(in_features=z_size*4, out_features=z_size*2)
+        # self.fca = nn.Linear(in_features=z_size*2, out_features=z_size*2)
+        # self.fcb = nn.Linear(in_features=z_size*2, out_features=z_size*2)
+        # self.fcc = nn.Linear(in_features=z_size*2, out_features=z_size*2)
+        self.fc3 = nn.Linear(in_features=z_size*2, out_features=z_size)
+        
+    def forward(self, features):
+        x = F.leaky_relu(self.fc1(features))
+        x = F.leaky_relu(self.fc2(x))
+
+        # x = F.leaky_relu(self.fca(x))
+        # x = F.leaky_relu(self.fcb(x))
+        # x = F.leaky_relu(self.fcc(x))
+
+        return self.fc3(x)
+
+
 class PixelDiscriminatorMLP(nn.Module):
     """
     Adapted from: https://github.com/Garima13a/MNIST_GAN/blob/master/MNIST_GAN_Solution.ipynb

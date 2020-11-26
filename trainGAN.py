@@ -12,7 +12,7 @@ from util import save_images
 
 
 def train_gan(epochs):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     if not os.path.isdir("./datasets"):
         os.mkdir("./datasets")
@@ -22,7 +22,7 @@ def train_gan(epochs):
     mnist_test_loader = get_mnist_test_data(store_location="./datasets")
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
-    z_size = 16
+    z_size = 128
 
     gen = PixelGeneratorMLP(z_size, 32, 784).to(device)
     gen_opt = optim.Adam(gen.parameters(), lr=1e-3)
