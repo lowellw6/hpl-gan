@@ -5,9 +5,10 @@ import torch.nn.functional as F
 import os
 from tqdm import tqdm
 
-from model import AE, Encoder, LatentDiscriminatorMLP, LatentGeneratorMLP, PixelDiscriminatorMLP, PixelGeneratorMLP
-from mnist import get_mnist_train_data, get_mnist_test_data
-from util import save_images
+from hpl_gan.config import DATASET_PATH, MODEL_PATH, RESULT_PATH
+from hpl_gan.mnist.model import AE, Encoder, LatentDiscriminatorMLP, LatentGeneratorMLP, PixelDiscriminatorMLP, PixelGeneratorMLP
+from hpl_gan.mnist.mnist import get_mnist_train_data, get_mnist_test_data
+from hpl_gan.mnist.util import save_images
 
 
 def train_hpl(epochs, state_dict_path_AE):
@@ -19,19 +20,19 @@ def train_hpl(epochs, state_dict_path_AE):
     """
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
-    if not os.path.isdir("./datasets"):
-        os.mkdir("./datasets")
+    if not os.path.isdir(DATASET_PATH):
+        os.mkdir(DATASET_PATH)
 
-    mnist_train_loader = get_mnist_train_data(store_location="./datasets")
+    mnist_train_loader = get_mnist_train_data(store_location=DATASET_PATH)
     
-    mnist_test_loader = get_mnist_test_data(store_location="./datasets")
+    mnist_test_loader = get_mnist_test_data(store_location=DATASET_PATH)
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
     z_size = 128
 
     autoencoder = AE(input_shape=784, z_size=z_size).to(device)
     if state_dict_path_AE:
-        autoencoder.load_state_dict(torch.load(state_dict_path_AE, map_location=device))
+        autoencoder.load_state_dict(torch.load(os.path.join(MODEL_PATH, state_dict_path_AE), map_location=device))
 
     zgen = LatentGeneratorMLP(z_size, 32).to(device)
     zgen_opt = optim.Adam(zgen.parameters(), lr=1e-3)
@@ -46,7 +47,7 @@ def train_hpl(epochs, state_dict_path_AE):
         prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
         testZ = zgen(prior)
         testX = (autoencoder.decode(testZ) + 1) * 0.5
-    save_images(f"HPL-grid-0", testX)
+    save_images(os.path.join(RESULT_PATH, "HPL-grid-0"), testX)
     
     print(f"Training HPL transfer mapping for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -99,13 +100,13 @@ def train_hpl(epochs, state_dict_path_AE):
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, mean-Z = {:.3f}, std-Z = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, meanZ, stdZ))
 
-        save_images(f"HPL-grid-{epoch+1}", testX)
+        save_images(os.path.join(RESULT_PATH, f"HPL-grid-{epoch+1}"), testX)
 
-    if not os.path.isdir("./models"):
-        os.mkdir("./models")
+    if not os.path.isdir(MODEL_PATH):
+        os.mkdir(MODEL_PATH)
 
-    torch.save(zgen.state_dict(), f"./models/zgen{epochs}.pt")
-    torch.save(zdis.state_dict(), f"./models/zdis{epochs}.pt")
+    torch.save(zgen.state_dict(), os.path.join(MODEL_PATH, f"zgen{epochs}.pt"))
+    torch.save(zdis.state_dict(), os.path.join(MODEL_PATH, f"zdis{epochs}.pt"))
 
 
 def train_hpl_from_GAN(epochs, gen_sd_path):
@@ -118,12 +119,12 @@ def train_hpl_from_GAN(epochs, gen_sd_path):
     """
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
-    if not os.path.isdir("./datasets"):
-        os.mkdir("./datasets")
+    if not os.path.isdir(DATASET_PATH):
+        os.mkdir(DATASET_PATH)
 
-    mnist_train_loader = get_mnist_train_data(store_location="./datasets")
+    mnist_train_loader = get_mnist_train_data(store_location=DATASET_PATH)
     
-    mnist_test_loader = get_mnist_test_data(store_location="./datasets")
+    mnist_test_loader = get_mnist_test_data(store_location=DATASET_PATH)
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
     z_size = 128
@@ -131,7 +132,7 @@ def train_hpl_from_GAN(epochs, gen_sd_path):
     # Pixel-space GANs
     xgen = PixelGeneratorMLP(z_size, 32, 784).to(device)
     if gen_sd_path:
-        xgen.load_state_dict(torch.load(gen_sd_path, map_location=device))
+        xgen.load_state_dict(torch.load(os.path.join(MODEL_PATH, gen_sd_path), map_location=device))
     xgen.eval()  # stops dropout, otherwise it may be harder for encoder to learn mapping from X back to Z 
 
     encoder = Encoder(input_shape=784, z_size=z_size).to(device) 
@@ -151,7 +152,7 @@ def train_hpl_from_GAN(epochs, gen_sd_path):
         prior = (torch.rand(len(test_batch), z_size).to(device) * 2) - 1
         testZ = zgen(prior)
         testX = (xgen(testZ) + 1) * 0.5
-    save_images(f"HPL-grid-0", testX)
+    save_images(os.path.join(RESULT_PATH, f"HPL-grid-0"), testX)
     
     print(f"Training HPL transfer mapping for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -218,16 +219,16 @@ def train_hpl_from_GAN(epochs, gen_sd_path):
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, E-loss = {:.6f}, mean-Z = {:.3f}, std-Z = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, Eloss, meanZ, stdZ))
 
-        save_images(f"HPL-grid-{epoch+1}", testX)
+        save_images(os.path.join(RESULT_PATH, f"HPL-grid-{epoch+1}"), testX)
 
-    if not os.path.isdir("./models"):
-        os.mkdir("./models")
+    if not os.path.isdir(MODEL_PATH):
+        os.mkdir(MODEL_PATH)
 
-    torch.save(zgen.state_dict(), f"./models/zgen{epochs}.pt")
-    torch.save(zdis.state_dict(), f"./models/zdis{epochs}.pt")
-    torch.save(encoder.state_dict(), f"./models/enc{epochs}.pt")
+    torch.save(zgen.state_dict(), os.path.join(MODEL_PATH, f"zgen{epochs}.pt"))
+    torch.save(zdis.state_dict(), os.path.join(MODEL_PATH, f"zdis{epochs}.pt"))
+    torch.save(encoder.state_dict(), os.path.join(MODEL_PATH, f"enc{epochs}.pt"))
 
 
 
 if __name__ == "__main__":
-    train_hpl_from_GAN(100, "./models/gen100.pt")
+    train_hpl_from_GAN(100, "gen100.pt")

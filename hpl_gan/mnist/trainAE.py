@@ -5,9 +5,10 @@ import torch.nn.functional as F
 import os
 from tqdm import tqdm
 
-from model import AE
-from mnist import get_mnist_train_data, get_mnist_test_data
-from util import save_reconstructions
+from hpl_gan.config import DATASET_PATH, MODEL_PATH, RESULT_PATH
+from hpl_gan.mnist.model import AE
+from hpl_gan.mnist.mnist import get_mnist_train_data, get_mnist_test_data
+from hpl_gan.mnist.util import save_reconstructions
 
 
 def train_autoencoder(epochs):
@@ -16,12 +17,12 @@ def train_autoencoder(epochs):
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if not os.path.isdir("./datasets"):
-        os.mkdir("./datasets")
+    if not os.path.isdir(DATASET_PATH):
+        os.mkdir(DATASET_PATH)
 
-    mnist_train_loader = get_mnist_train_data(store_location="./datasets")
+    mnist_train_loader = get_mnist_train_data(store_location=DATASET_PATH)
     
-    mnist_test_loader = get_mnist_test_data(store_location="./datasets")
+    mnist_test_loader = get_mnist_test_data(store_location=DATASET_PATH)
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
     test_input = test_batch.view(-1, 784).to(device)
     test_input = (test_input * 2) - 1
@@ -32,7 +33,7 @@ def train_autoencoder(epochs):
     with torch.no_grad():
         reconstructions = autoencoder(test_input)
         reconstructions = (reconstructions + 1) * 0.5
-    save_reconstructions(f"AE-grid-0", test_batch, reconstructions)
+    save_reconstructions(os.path.join(RESULT_PATH, "AE-grid-0"), test_batch, reconstructions)
     
     print(f"Training for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -72,13 +73,13 @@ def train_autoencoder(epochs):
         with torch.no_grad():
             reconstructions = autoencoder(test_input)
             reconstructions = (reconstructions + 1) * 0.5
-        save_reconstructions(f"AE-grid-{epoch+1}", test_batch, reconstructions)
+        save_reconstructions(os.path.join(RESULT_PATH, f"AE-grid-{epoch+1}"), test_batch, reconstructions)
 
 
-    if not os.path.isdir("./models"):
-        os.mkdir("./models")
+    if not os.path.isdir(MODEL_PATH):
+        os.mkdir(MODEL_PATH)
 
-    torch.save(autoencoder.state_dict(), f"./models/ae{epochs}.pt")
+    torch.save(autoencoder.state_dict(), os.path.join(MODEL_PATH, f"ae{epochs}.pt"))
 
 
 

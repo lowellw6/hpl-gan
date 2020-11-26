@@ -10,9 +10,10 @@ import torch.nn.functional as F
 import os
 from tqdm import tqdm
 
-from model import AE, LatentDiscriminatorMLP
-from mnist import get_mnist_train_data, get_mnist_test_data
-from util import save_images
+from hpl_gan.config import DATASET_PATH, MODEL_PATH, RESULT_PATH
+from hpl_gan.mnist.model import AE, LatentDiscriminatorMLP
+from hpl_gan.mnist.mnist import get_mnist_train_data, get_mnist_test_data
+from hpl_gan.mnist.util import save_images
 
 
 def train_adversarial_autoencoder(epochs):
@@ -23,12 +24,12 @@ def train_adversarial_autoencoder(epochs):
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if not os.path.isdir("./datasets"):
-        os.mkdir("./datasets")
+    if not os.path.isdir(DATASET_PATH):
+        os.mkdir(DATASET_PATH)
 
-    mnist_train_loader = get_mnist_train_data(store_location="./datasets")
+    mnist_train_loader = get_mnist_train_data(store_location=DATASET_PATH)
     
-    mnist_test_loader = get_mnist_test_data(store_location="./datasets")
+    mnist_test_loader = get_mnist_test_data(store_location=DATASET_PATH)
     test_batch, _ = next(iter(mnist_test_loader))  # Used for visual checkpoints of progress
 
     autoencoder = AE(input_shape=784).to(device)
@@ -40,7 +41,7 @@ def train_adversarial_autoencoder(epochs):
     with torch.no_grad():
         testZ = torch.rand(len(test_batch), 128).to(device)  # Directly from random uniform distribution [0, 1)
         testX = autoencoder.decode(testZ)
-    save_images(f"AAE-grid-0", testX)
+    save_images(os.path.join(RESULT_PATH, "AAE-grid-0"), testX)
 
     print(f"Training AAE for {epochs} epochs on MNIST digits")
     for epoch in range(epochs):
@@ -99,13 +100,13 @@ def train_adversarial_autoencoder(epochs):
 
         print("epoch : {}/{}, D-loss = {:.6f}, G-loss = {:.6f}, AE-loss = {:.6f}, mean-Z = {:.3f}, std-Z = {:.3f}".format(epoch + 1, epochs, Dloss, Gloss, AEloss, meanZ, stdZ))
 
-        save_images(f"AAE-grid-{epoch+1}", testX)
+        save_images(os.path.join(RESULT_PATH, f"AAE-grid-{epoch+1}"), testX)
 
-    if not os.path.isdir("./models"):
-        os.mkdir("./models")
+    if not os.path.isdir(MODEL_PATH):
+        os.mkdir(MODEL_PATH)
 
-    torch.save(autoencoder.state_dict(), f"./models/aae{epochs}.pt")
-    torch.save(zdis.state_dict(), f"./models/pzdis{epochs}.pt")
+    torch.save(autoencoder.state_dict(), os.path.join(MODEL_PATH, f"aae{epochs}.pt"))
+    torch.save(zdis.state_dict(), os.path.join(MODEL_PATH, f"pzdis{epochs}.pt"))
 
 
 
