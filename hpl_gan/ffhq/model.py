@@ -30,7 +30,7 @@ class ConvGenerator(nn.Module):
         x = F.leaky_relu(self.tconv3(x), 0.3)
         x = F.leaky_relu(self.tconv4(x), 0.3)
         x = F.leaky_relu(self.tconv5(x), 0.3)
-        return F.leaky_relu(self.tconv6(x), 0.3)
+        return self.tconv6(x)
 
 
 class ConvEncoder(nn.Module):
