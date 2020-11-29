@@ -57,3 +57,50 @@ class ConvEncoder(nn.Module):
         x = torch.flatten(x, start_dim=1)
         return self.head(x)
 
+
+class LatentDiscriminatorMLP(nn.Module):
+    def __init__(self, z_size, hidden_dim):
+        super().__init__()
+
+        self.fc1 = nn.Linear(z_size, hidden_dim*8)
+        self.fc2 = nn.Linear(hidden_dim*8, hidden_dim*4)
+        self.fc3 = nn.Linear(hidden_dim*4, hidden_dim*2)
+        self.fc4 = nn.Linear(hidden_dim*2, hidden_dim)
+        self.fc5 = nn.Linear(hidden_dim, 1)
+
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, code):
+        x = F.leaky_relu(self.fc1(code), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc2(x), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc3(x), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc4(x), negative_slope=0.2)
+        x = self.dropout(x)
+        return self.fc5(x)
+
+
+class LatentGeneratorMLP(nn.Module):
+    def __init__(self, z_size, hidden_dim):
+        super().__init__()
+
+        self.fc1 = nn.Linear(z_size, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim*2)
+        self.fc3 = nn.Linear(hidden_dim*2, hidden_dim*2)
+        self.fc4 = nn.Linear(hidden_dim*2, hidden_dim*4)
+        self.fc5 = nn.Linear(hidden_dim*4, z_size)
+
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, code):
+        x = F.leaky_relu(self.fc1(code), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc2(x), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc3(x), negative_slope=0.2)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc4(x), negative_slope=0.2)
+        x = self.dropout(x)
+        return self.fc5(x)

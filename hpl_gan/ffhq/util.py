@@ -38,27 +38,29 @@ def create_compare_grid(imgs, reconstructions, num_rows=4):
     return torch.cat(comp_rows, dim=2).squeeze()
 
 
-# def save_images(name, images):
-#     images_shaped = images.view(-1, 1, 28, 28).to("cpu")
+def save_images(name, images):
+    images = images.to("cpu")
     
-#     results = create_grid(images_shaped)
-#     results = results.detach().numpy()
-#     results *= 255.
+    results = create_grid(images)
+    results = results.permute(1, 2, 0)
+    results = results.detach().numpy()
+    results = cv2.cvtColor(results, cv2.COLOR_RGB2BGR)
+    results *= 255.
 
-#     cv2.imwrite(name+".png", results)
+    cv2.imwrite(name+".png", results)
 
 
-# def create_grid(imgs, num_rows=4):
-#     imgs = torch.split(imgs, 1)
+def create_grid(imgs, num_rows=4):
+    imgs = torch.split(imgs, 1)
 
-#     assert len(imgs) % num_rows == 0
-#     row_len = len(imgs) / num_rows
+    assert len(imgs) % num_rows == 0
+    row_len = len(imgs) / num_rows
 
-#     comp_rows = []
-#     for row in range(num_rows):
-#         start = int(row * row_len)
-#         stop = int((row + 1) * row_len)
-#         comp_imgs = torch.cat(imgs[start:stop], dim=3)
-#         comp_rows.append(comp_imgs)
+    comp_rows = []
+    for row in range(num_rows):
+        start = int(row * row_len)
+        stop = int((row + 1) * row_len)
+        comp_imgs = torch.cat(imgs[start:stop], dim=3)
+        comp_rows.append(comp_imgs)
 
-#     return torch.cat(comp_rows, dim=2).squeeze()
+    return torch.cat(comp_rows, dim=2).squeeze()

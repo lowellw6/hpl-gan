@@ -116,4 +116,4 @@ def train_autoencoder(epochs, chk_gap=None):
 
 
 if __name__ == "__main__":
-    train_autoencoder(1000, 20)
+    train_autoencoder(1000, 100)
