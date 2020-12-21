@@ -1,0 +1,25 @@
+datasets:
+  test:
+    name: 'celeba-hq'
+    batch_size: 1
+    use_shuffle: False
+    n_workers: 1
+    fineSize: 256
+    img_shape: [3, 256, 256]
+    image_list: '/content/drive/My Drive/Colab_Notebooks/DMFN/datasets/celeba-hq/test_list_image_eye.txt'
+    mask_list: '/content/drive/My Drive/Colab_Notebooks/DMFN/datasets/mask/test_list_mask_eye.txt'
+    mask_type: 'irregular'
+    mask_pos: 'random'
+    mask_height: 128
+    mask_width: 128
+    vertical_margin: 0
+    horizontal_margin: 0
+    max_delta_height: 0
+    max_delta_width: 0
+
+network_G:
+  which_model_G: 'DMFN'
+  in_nc: 4
+  out_nc: 3
+  nf: 64
+  n_res: 8

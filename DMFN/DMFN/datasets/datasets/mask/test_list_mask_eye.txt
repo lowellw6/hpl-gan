@@ -1,0 +1,2 @@
+/content/drive/My Drive/Colab_Notebooks/DMFN/data/test_mask_eye/seed0066_binary.jpg
+
